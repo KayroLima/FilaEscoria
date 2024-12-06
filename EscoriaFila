@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Contatos - GPS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <style>
+        /* Estilos gerais */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            font-size: 16px;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        .form-group button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007BFF;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .form-group button:hover {
+            background-color: #0056b3;
+        }
+
+        #list-container {
+            margin-top: 40px;
+        }
+
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background-color: #f8f8f8;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            align-items: center;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .list-item div {
+            flex: 2;
+        }
+
+        .list-item input[type="text"] {
+            width: 200px;
+            margin-right: 10px;
+        }
+
+        .status-select {
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        .list-item button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #007BFF;
+        }
+
+        .list-item button:hover {
+            color: #0056b3;
+        }
+
+        .btn-secundario {
+            background-color: #28a745;
+        }
+
+        .btn-secundario:hover {
+            background-color: #218838;
+        }
+
+        /* Responsividade */
+        @media (max-width: 600px) {
+            .container {
+                width: 95%;
+                padding: 20px;
+            }
+
+            .form-group input,
+            .form-group select {
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            .form-group button {
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            .list-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .list-item div {
+                flex: 1;
+                margin-bottom: 10px;
+            }
+
+            .list-item input[type="text"] {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+
+            .status-select {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Cadastro de Contatos - GPS</h2>
+
+        <!-- Formulário de cadastro -->
+        <div class="form-group">
+            <label for="name">Nome</label>
+            <input type="text" id="name" placeholder="Digite seu nome">
+        </div>
+
+        <div class="form-group">
+            <label for="phone">Telefone</label>
+            <input type="text" id="phone" placeholder="Digite o telefone">
+        </div>
+
+        <button class="btn-secundario" onclick="adicionarCadastro()">Adicionar</button>
+
+        <!-- Botões de importação e exportação -->
+        <div>
+            <input type="file" id="importFile" accept=".xlsx,.xls,.csv" onchange="importarArquivo(event)">
+            <button class="btn-secundario" onclick="exportarCSV()">Exportar para CSV</button>
+        </div>
+
+        <!-- Lista de contatos -->
+        <div id="list-container">
+            <div id="list-items"></div>
+        </div>
+    </div>
+
+    <script>
+        let listaContatos = JSON.parse(localStorage.getItem('listaContatos')) || [];
+
+        // Função para adicionar o cadastro
+        function adicionarCadastro() {
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+
+            if (!name || !phone) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+
+            const contato = { name, phone, observacao: '', status: '' };
+            listaContatos.push(contato);
+            salvarLista();
+            atualizarLista();
+
+            // Limpando os campos após adicionar
+            document.getElementById('name').value = '';
+            document.getElementById('phone').value = '';
+        }
+
+        // Função para salvar a lista no localStorage
+        function salvarLista() {
+            localStorage.setItem('listaContatos', JSON.stringify(listaContatos));
+        }
+
+        // Função para atualizar a lista de contatos
+        function atualizarLista() {
+            const listContainer = document.getElementById('list-items');
+            listContainer.innerHTML = '';
+
+            listaContatos.forEach((contato, index) => {
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                div.innerHTML = `
+                    <div>
+                        <strong>${contato.name} - ${contato.phone}</strong>
+                    </div>
+                    <input type="text" value="${contato.observacao}" oninput="atualizarObservacao(${index}, event)" placeholder="Observação">
+                    <select class="status-select" onchange="atualizarStatus(${index}, event)">
+                        <option value="atendeu" ${contato.status === 'atendeu' ? 'selected' : ''}>Atendeu</option>
+                        <option value="nao-atendeu" ${contato.status === 'nao-atendeu' ? 'selected' : ''}>Não Atendeu</option>
+                        <option value="cancelado" ${contato.status === 'cancelado' ? 'selected' : ''}>Cancelou</option>
+                    </select>
+                    <div>
+                        <button onclick="moverParaCima(${index})">↑</button>
+                        <button onclick="moverParaBaixo(${index})">↓</button>
+                        <button onclick="excluirContato(${index})">🗑️</button>
+                    </div>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        // Função para mover para cima
+        function moverParaCima(index) {
+            if (index > 0) {
+                [listaContatos[index], listaContatos[index - 1]] = [listaContatos[index - 1], listaContatos[index]];
+                salvarLista();
+                atualizarLista();
+            }
+        }
+
+        // Função para mover para baixo
+        function moverParaBaixo(index) {
+            if (index < listaContatos.length - 1) {
+                [listaContatos[index], listaContatos[index + 1]] = [listaContatos[index + 1], listaContatos[index]];
+                salvarLista();
+                atualizarLista();
+            }
+        }
+
+        // Função para excluir contato
+        function excluirContato(index) {
+            if (confirm('Tem certeza que deseja excluir este contato?')) {
+                listaContatos.splice(index, 1);
+                salvarLista();
+                atualizarLista();
+            }
+        }
+
+        // Função para importar arquivo Excel ou CSV
+        function importarArquivo(event) {
+            const file = event.target.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = e.target.result;
+                    const workbook = XLSX.read(data, { type: 'binary' });
+                    const sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+
+                    // Convertendo a planilha para JSON
+                    const rows = XLSX.utils.sheet_to_json(sheet);
+                    listaContatos = rows.map(row => ({
+                        name: row.Nome || row.Name,
+                        phone: row.Telefone || row.Phone,
+                        observacao: '',
+                        status: ''
+                    }));
+                    salvarLista();
+                    atualizarLista();
+                };
+
+                reader.readAsBinaryString(file);
+            } else {
+                alert('Por favor, carregue um arquivo válido.');
+            }
+        }
+
+        // Função para exportar para CSV
+        function exportarCSV() {
+            const header = ['Nome', 'Telefone', 'Observação', 'Status'];
+            const rows = listaContatos.map(contato => [
+                contato.name,
+                contato.phone,
+                contato.observacao,
+                contato.status
+            ]);
+            const csvContent = "data:text/csv;charset=utf-8," + header.join(",") + "\n" +
+                rows.map(row => row.join(",")).join("\n");
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "contatos.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Função para atualizar a observação
+        function atualizarObservacao(index, event) {
+            listaContatos[index].observacao = event.target.value;
+            salvarLista();
+        }
+
+        // Função para atualizar o status
+        function atualizarStatus(index, event) {
+            listaContatos[index].status = event.target.value;
+            salvarLista();
+        }
+
+        // Carregar a lista ao carregar a página
+        atualizarLista();
+    </script>
+
+</body>
+
+</html>
